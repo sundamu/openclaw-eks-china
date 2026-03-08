@@ -134,6 +134,9 @@ class ApiClient {
 
   // Members
   getMembers(tenant) { return this.request(`/api/v1/tenants/${tenant}/members`) }
+  removeMember(tenant, userId) {
+    return this.request(`/api/v1/tenants/${tenant}/members/${userId}`, { method: 'DELETE' })
+  }
 
   // Tenant management
   deleteTenant(tenant) {

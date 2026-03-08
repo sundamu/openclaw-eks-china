@@ -19,9 +19,9 @@ from api.routers.tenants import get_user_tenant
 router = APIRouter(tags=["agents"])
 
 
-async def get_tenant_or_404(tenant_name: str, current_user: User, db: AsyncSession) -> Tenant:
-    """Get tenant if user has access (owner or member)"""
-    tenant, role = await get_user_tenant(tenant_name, current_user, db, min_role="viewer")
+async def get_tenant_or_404(tenant_name: str, current_user: User, db: AsyncSession, min_role: str = "member") -> Tenant:
+    """Get tenant if user has access with required role"""
+    tenant, role = await get_user_tenant(tenant_name, current_user, db, min_role=min_role)
     return tenant
 
 
@@ -46,12 +46,13 @@ async def create_agent(
 ):
     """Create a new agent with chosen LLM provider and model.
 
-    LLM providers (China region — Bedrock not available):
+    LLM providers:
+    - bedrock-irsa: Platform-managed Bedrock (no API keys needed, uses node IAM role)
+    - bedrock: Your own AWS Bedrock (provide AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY)
     - openai: OpenAI (provide OPENAI_API_KEY)
     - anthropic: Anthropic (provide ANTHROPIC_API_KEY)
-    - openai-compatible: Any OpenAI-compatible endpoint (provide OPENAI_API_KEY + OPENAI_BASE_URL)
     """
-    tenant = await get_tenant_or_404(tenant_name, current_user, db)
+    tenant = await get_tenant_or_404(tenant_name, current_user, db, min_role="member")
 
     # Validate provider
     if agent_data.llm_provider not in LLM_PROVIDERS:
@@ -158,7 +159,7 @@ async def update_agent_config(
     db: AsyncSession = Depends(get_db),
 ):
     """Update agent configuration via CRD patch"""
-    tenant = await get_tenant_or_404(tenant_name, current_user, db)
+    tenant = await get_tenant_or_404(tenant_name, current_user, db, min_role="member")
     result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant.id))
     agent = result.scalar_one_or_none()
     if not agent:
@@ -180,7 +181,7 @@ async def delete_agent(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an agent (CRD + secrets + DB record)"""
-    tenant = await get_tenant_or_404(tenant_name, current_user, db)
+    tenant = await get_tenant_or_404(tenant_name, current_user, db, min_role="member")
     result = await db.execute(select(Agent).where(Agent.id == agent_id, Agent.tenant_id == tenant.id))
     agent = result.scalar_one_or_none()
     if not agent:

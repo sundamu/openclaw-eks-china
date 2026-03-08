@@ -24,7 +24,6 @@ class TenantRole(str, Enum):
     OWNER = "owner"
     ADMIN = "admin"
     MEMBER = "member"
-    VIEWER = "viewer"
 
 
 class Tenant(Base):
@@ -101,7 +100,7 @@ class InviteMemberRequest(BaseModel):
     """Invite a member to tenant"""
 
     email: EmailStr
-    role: str = Field(default="member", pattern="^(admin|member|viewer)$")
+    role: str = Field(default="member", pattern="^(admin|member)$")
 
 
 class MemberResponse(BaseModel):
@@ -120,14 +119,14 @@ class MemberResponse(BaseModel):
 class UpdateMemberRoleRequest(BaseModel):
     """Update member role"""
 
-    role: str = Field(..., pattern="^(admin|member|viewer)$")
+    role: str = Field(..., pattern="^(admin|member)$")
 
 
 class AllowedEmailRequest(BaseModel):
     """Add an allowed email to a tenant"""
 
     email: EmailStr
-    role: str = Field(default="member", pattern="^(admin|member|viewer)$")
+    role: str = Field(default="member", pattern="^(admin|member)$")
 
 
 class AllowedEmailResponse(BaseModel):

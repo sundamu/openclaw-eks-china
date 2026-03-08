@@ -19,11 +19,11 @@ router = APIRouter(prefix="/api/v1/tenants", tags=["tenants"])
 
 
 async def get_user_tenant(
-    tenant_name: str, user: User, db: AsyncSession, min_role: str = "viewer"
+    tenant_name: str, user: User, db: AsyncSession, min_role: str = "member"
 ) -> tuple:
     """Get tenant if user has access. Returns (tenant, role).
     Platform admins have implicit owner access to all tenants."""
-    ROLE_LEVEL = {"owner": 4, "admin": 3, "member": 2, "viewer": 1}
+    ROLE_LEVEL = {"owner": 4, "admin": 3, "member": 2}
 
     result = await db.execute(
         select(Tenant).where(Tenant.name == tenant_name)
@@ -120,7 +120,10 @@ async def create_tenant(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Create a new tenant"""
+    """Create a new tenant (platform admin only)"""
+    if not getattr(current_user, 'is_platform_admin', False):
+        raise HTTPException(status_code=403, detail="Only platform admins can create tenants")
+
     result = await db.execute(
         select(Tenant).where(Tenant.name == tenant_data.name)
     )
@@ -215,7 +218,7 @@ async def list_members(
     db: AsyncSession = Depends(get_db),
 ):
     """List all members of a tenant (viewer+ can see)"""
-    tenant, role = await get_user_tenant(tenant_name, current_user, db, min_role="viewer")
+    tenant, role = await get_user_tenant(tenant_name, current_user, db, min_role="member")
 
     # Get owner
     owner_result = await db.execute(select(User).where(User.id == tenant.owner_id))
@@ -247,6 +250,37 @@ async def list_members(
         ))
 
     return members
+
+
+@router.delete("/{tenant_name}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(
+    tenant_name: str,
+    user_id: int,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Remove a member from a tenant (admin+ only). Cannot remove the owner."""
+    tenant, role = await get_user_tenant(tenant_name, current_user, db, min_role="admin")
+
+    # Cannot remove tenant owner
+    if tenant.owner_id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot remove the tenant owner")
+
+    # Cannot remove yourself (use leave or transfer ownership instead)
+    if current_user.id == user_id:
+        raise HTTPException(status_code=400, detail="Cannot remove yourself")
+
+    result = await db.execute(
+        select(TenantMember).where(
+            TenantMember.tenant_id == tenant.id,
+            TenantMember.user_id == user_id,
+        )
+    )
+    member = result.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    await db.delete(member)
 
 
 # ─── Platform Admin ───

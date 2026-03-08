@@ -221,11 +221,13 @@ function DashboardPage() {
         <div className="card-header">
           <span className="card-title">Tenants</span>
         </div>
-        <form onSubmit={createTenant} style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
-          <input className="form-input" value={newName} onChange={e => setNewName(e.target.value)}
-            placeholder="tenant-name (lowercase, a-z, 0-9, hyphens)" style={{flex:1}} />
-          <button className="btn btn-primary" type="submit">Create</button>
-        </form>
+        {isAdmin && (
+          <form onSubmit={createTenant} style={{display:'flex', gap:'8px', marginBottom:'16px'}}>
+            <input className="form-input" value={newName} onChange={e => setNewName(e.target.value)}
+              placeholder="tenant-name (lowercase, a-z, 0-9, hyphens)" style={{flex:1}} />
+            <button className="btn btn-primary" type="submit">Create</button>
+          </form>
+        )}
         {loading ? <p>Loading...</p> : tenants.length === 0 ? (
           <div className="empty"><div className="empty-icon">📦</div><p>No tenants yet. Create one above.</p></div>
         ) : tenants.map(t => (
@@ -342,13 +344,17 @@ function TenantPage() {
           <p style={{ padding: '12px 16px', color: 'var(--text-secondary)', fontSize: '13px' }}>No members yet.</p>
         ) : (
           <div className="usage-table">
-            <div className="usage-row usage-header"><span>Email</span><span>Name</span><span>Role</span><span>Joined</span></div>
+            <div className="usage-row usage-header"><span>Email</span><span>Name</span><span>Role</span><span>Joined</span><span></span></div>
             {members.map(m => (
               <div key={m.user_id} className="usage-row">
                 <span>{m.email}</span>
                 <span>{m.display_name || '—'}</span>
                 <span className={`badge ${m.role === 'owner' ? 'badge-blue' : m.role === 'admin' ? 'badge-green' : ''}`}>{m.role}</span>
                 <span style={{fontSize:'12px', color:'var(--text-secondary)'}}>{new Date(m.joined_at).toLocaleDateString()}</span>
+                <span>{m.role !== 'owner' && <button className="btn btn-sm btn-danger" onClick={async () => {
+                  if (!confirm(`Remove ${m.email} from this tenant?`)) return
+                  try { await api.removeMember(tenantName, m.user_id); loadMembers() } catch (err) { setError(err.message) }
+                }}>Remove</button>}</span>
               </div>
             ))}
           </div>
@@ -426,7 +432,6 @@ function AllowedEmailsCard({ tenantName }) {
         <select className="form-input" value={newRole} onChange={e => setNewRole(e.target.value)} style={{ width: '120px' }}>
           <option value="member">Member</option>
           <option value="admin">Admin</option>
-          <option value="viewer">Viewer</option>
         </select>
         <button className="btn btn-primary btn-sm" type="submit">Add</button>
       </form>

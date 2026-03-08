@@ -63,7 +63,7 @@ async def get_billing(
     db: AsyncSession = Depends(get_db),
 ):
     """Get billing info for a tenant including usage and quota"""
-    tenant, _role = await get_user_tenant(tenant_name, current_user, db)
+    tenant, _role = await get_user_tenant(tenant_name, current_user, db, min_role="member")
 
     plan_info = PLAN_LIMITS.get(tenant.plan, PLAN_LIMITS["free"])
 
@@ -100,7 +100,7 @@ async def get_quota_status(
     db: AsyncSession = Depends(get_db),
 ):
     """Get current quota status for a tenant"""
-    tenant, _role = await get_user_tenant(tenant_name, current_user, db)
+    tenant, _role = await get_user_tenant(tenant_name, current_user, db, min_role="member")
 
     quota_status = await check_quota(db, tenant_name, tenant.plan)
 
@@ -118,7 +118,7 @@ async def upgrade_plan(
     if plan not in PLAN_LIMITS:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Invalid plan: {plan}")
 
-    tenant, _role = await get_user_tenant(tenant_name, current_user, db)
+    tenant, _role = await get_user_tenant(tenant_name, current_user, db, min_role="owner")
 
     tenant.plan = plan
     await db.commit()
