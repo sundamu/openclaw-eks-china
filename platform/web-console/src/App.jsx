@@ -292,7 +292,7 @@ function TenantPage() {
             <div className="agent-info">
               <span className="agent-name">{a.name}</span>
               <span className={`badge ${a.status === 'running' ? 'badge-green' : 'badge-orange'}`}>{a.status}</span>
-              <span className="badge badge-blue">{a.llm_provider || 'bedrock-irsa'}</span>
+              <span className="badge badge-blue">{a.llm_provider || 'openai'}</span>
               {a.llm_model && <span style={{color:'var(--text-secondary)', fontSize:'11px'}}>{a.llm_model}</span>}
               <div className="agent-channels">
                 {(a.channels || []).map(ch => <span key={ch} className="channel-chip">{ch}</span>)}
@@ -341,7 +341,7 @@ function TenantPage() {
 function CreateAgentModal({ tenantName, onClose, onSuccess, onError }) {
   const [name, setName] = useState('')
   const [providers, setProviders] = useState(null)
-  const [provider, setProvider] = useState('bedrock-irsa')
+  const [provider, setProvider] = useState('openai')
   const [model, setModel] = useState('')
   const [apiKeys, setApiKeys] = useState({})
   const [error, setError] = useState('')
@@ -351,7 +351,7 @@ function CreateAgentModal({ tenantName, onClose, onSuccess, onError }) {
   useState(() => {
     api.getLlmProviders().then(p => {
       setProviders(p)
-      setModel(p['bedrock-irsa']?.default_model || '')
+      setModel(p['openai']?.default_model || '')
     }).catch(e => setError(e.message))
   }, [])
 
@@ -425,11 +425,9 @@ function CreateAgentModal({ tenantName, onClose, onSuccess, onError }) {
             </div>
           )}
 
-          {provider === 'bedrock-irsa' && (
-            <p style={{fontSize:'13px', color:'var(--text-secondary)', marginBottom:'12px'}}>
-              ✅ No API keys needed — uses platform-managed AWS Bedrock access.
-            </p>
-          )}
+          <p style={{fontSize:'13px', color:'var(--text-secondary)', marginBottom:'12px'}}>
+            🔑 Provide your LLM provider API keys. Bedrock is not available in China regions.
+          </p>
 
           <div className="modal-actions">
             <button type="button" className="btn" onClick={onClose}>Cancel</button>

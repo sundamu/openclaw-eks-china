@@ -19,7 +19,7 @@ config = Config(app)
 # Get AWS account and region from environment or context
 env = cdk.Environment(
     account=os.environ.get("CDK_DEFAULT_ACCOUNT"),
-    region=os.environ.get("CDK_DEFAULT_REGION", "us-west-2"),
+    region=os.environ.get("CDK_DEFAULT_REGION", "cn-northwest-1"),
 )
 
 # Common tags for all stacks
@@ -78,9 +78,8 @@ if config.has_custom_domain:
 # ========== EKS and Related ==========
 
 # EKS Stack (depends on VPC)
-# Note: We'll create IAM stack first to get Bedrock policy, then pass it to EKS
-# But EKS needs to exist for IAM IRSA role... circular dependency!
-# Solution: Create EKS first, then IAM, then attach policy separately
+# Note: Bedrock is NOT available in AWS China regions.
+# No bedrock_policy_arn is passed to EKS.
 
 eks_stack = EksStack(
     app,

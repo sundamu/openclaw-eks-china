@@ -1,8 +1,15 @@
-"""IAM stack for OpenClaw SaaS"""
+"""IAM stack for OpenClaw SaaS (China region)"""
 import aws_cdk as cdk
 from aws_cdk import aws_iam as iam
 from aws_cdk import aws_eks as eks
 from constructs import Construct
+
+
+def sts_audience(partition: str) -> str:
+    """Return STS audience for OIDC trust — .cn suffix for China partition."""
+    if partition == "aws-cn":
+        return "sts.amazonaws.com.cn"
+    return "sts.amazonaws.com"
 
 
 class IamStack(cdk.Stack):
@@ -17,8 +24,10 @@ class IamStack(cdk.Stack):
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
 
+        partition = self.partition  # "aws-cn" in China, "aws" in global
+        sts_aud = sts_audience(partition)
+
         # IRSA role for platform-api service account
-        # This role allows the platform API to manage K8s resources and send to SQS
         oidc_provider = cluster.open_id_connect_provider
 
         conditions = cdk.CfnJson(
@@ -28,7 +37,7 @@ class IamStack(cdk.Stack):
                 f"{oidc_provider.open_id_connect_provider_issuer}:sub":
                     "system:serviceaccount:openclaw-platform:platform-api",
                 f"{oidc_provider.open_id_connect_provider_issuer}:aud":
-                    "sts.amazonaws.com",
+                    sts_aud,
             },
         )
 
@@ -68,31 +77,15 @@ class IamStack(cdk.Stack):
                     "logs:FilterLogEvents",
                 ],
                 resources=[
-                    f"arn:aws:logs:{self.region}:{self.account}:log-group:/aws/eks/{cluster.cluster_name}/cluster:*",
-                    f"arn:aws:logs:{self.region}:{self.account}:log-group:/aws/containerinsights/{cluster.cluster_name}/*:*",
+                    f"arn:{partition}:logs:{self.region}:{self.account}:log-group:/aws/eks/{cluster.cluster_name}/cluster:*",
+                    f"arn:{partition}:logs:{self.region}:{self.account}:log-group:/aws/containerinsights/{cluster.cluster_name}/*:*",
                 ],
             )
         )
 
-        # Additional policies for EKS node groups (Bedrock access)
-        # These are attached to the node IAM role, not IRSA
-        # We'll just create a policy that can be attached to node roles
-        self.node_bedrock_policy = iam.ManagedPolicy(
-            self,
-            "NodeBedrockPolicy",
-            managed_policy_name=f"{config.resource_prefix}-node-bedrock-policy",
-            description="Allow EKS nodes to access AWS Bedrock",
-            statements=[
-                iam.PolicyStatement(
-                    effect=iam.Effect.ALLOW,
-                    actions=[
-                        "bedrock:InvokeModel",
-                        "bedrock:InvokeModelWithResponseStream",
-                    ],
-                    resources=["*"],  # Bedrock doesn't support resource-level permissions
-                )
-            ],
-        )
+        # NOTE: Bedrock is NOT available in AWS China regions.
+        # No node Bedrock policy needed. Tenants must use external LLM providers
+        # (OpenAI, Anthropic) with their own API keys.
 
         # Outputs
         cdk.CfnOutput(
@@ -101,12 +94,4 @@ class IamStack(cdk.Stack):
             value=self.platform_api_role.role_arn,
             description="ARN of the platform API IRSA role",
             export_name=f"{config.stack_prefix}-platform-api-role-arn",
-        )
-
-        cdk.CfnOutput(
-            self,
-            "NodeBedrockPolicyArn",
-            value=self.node_bedrock_policy.managed_policy_arn,
-            description="ARN of the Bedrock policy for EKS nodes",
-            export_name=f"{config.stack_prefix}-node-bedrock-policy-arn",
         )

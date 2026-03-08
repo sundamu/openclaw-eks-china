@@ -28,39 +28,16 @@ class Agent(Base):
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False)
     status = Column(String(50), default=AgentStatus.PENDING.value, nullable=False)
     channels = Column(JSON, default=list, nullable=False)
-    llm_provider = Column(String(50), default="bedrock", nullable=False)
+    llm_provider = Column(String(50), default="openai", nullable=False)
     llm_model = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
 
 # ─── LLM Provider definitions ───
+# NOTE: Bedrock / bedrock-irsa removed — Bedrock is NOT available in AWS China regions.
+# Users must bring their own API keys (OpenAI, Anthropic, or compatible).
 
 LLM_PROVIDERS = {
-    "bedrock": {
-        "name": "AWS Bedrock",
-        "env_keys": ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY", "AWS_DEFAULT_REGION"],
-        "optional_keys": [],
-        "default_model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
-        "models": [
-            {"id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0", "name": "Claude Sonnet 4.5"},
-            {"id": "global.anthropic.claude-sonnet-4-20250514-v1:0", "name": "Claude Sonnet 4"},
-            {"id": "global.anthropic.claude-opus-4-6-v1", "name": "Claude Opus 4"},
-        ],
-        "config_builder": lambda model: {
-            "models": {
-                "providers": {
-                    "amazon-bedrock": {
-                        "baseUrl": "https://bedrock-runtime.us-west-2.amazonaws.com",
-                        "auth": "aws-sdk",
-                        "api": "bedrock-converse-stream",
-                        "models": [
-                            {"id": model, "name": model, "input": ["text", "image"], "contextWindow": 200000, "maxTokens": 8192},
-                        ],
-                    }
-                }
-            }
-        },
-    },
     "openai": {
         "name": "OpenAI",
         "env_keys": ["OPENAI_API_KEY"],
@@ -85,29 +62,15 @@ LLM_PROVIDERS = {
         ],
         "config_builder": lambda model: {},  # Anthropic auto-configured via env var
     },
-    "bedrock-irsa": {
-        "name": "AWS Bedrock (Platform Managed)",
-        "env_keys": [],
-        "optional_keys": [],
-        "default_model": "global.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "openai-compatible": {
+        "name": "OpenAI Compatible (Custom Endpoint)",
+        "env_keys": ["OPENAI_API_KEY"],
+        "optional_keys": ["OPENAI_BASE_URL"],
+        "default_model": "gpt-4o",
         "models": [
-            {"id": "global.anthropic.claude-sonnet-4-5-20250929-v1:0", "name": "Claude Sonnet 4.5"},
-            {"id": "global.anthropic.claude-sonnet-4-20250514-v1:0", "name": "Claude Sonnet 4"},
+            {"id": "gpt-4o", "name": "GPT-4o (or custom)"},
         ],
-        "config_builder": lambda model: {
-            "models": {
-                "providers": {
-                    "amazon-bedrock": {
-                        "baseUrl": "https://bedrock-runtime.us-west-2.amazonaws.com",
-                        "auth": "aws-sdk",
-                        "api": "bedrock-converse-stream",
-                        "models": [
-                            {"id": model, "name": model, "input": ["text", "image"], "contextWindow": 200000, "maxTokens": 8192},
-                        ],
-                    }
-                }
-            }
-        },
+        "config_builder": lambda model: {},  # Configured via OPENAI_BASE_URL env var
     },
 }
 
@@ -117,7 +80,7 @@ class AgentCreate(BaseModel):
     """Agent creation schema"""
 
     name: str = Field(..., min_length=3, max_length=63, pattern="^[a-z0-9-]+$")
-    llm_provider: str = Field(default="bedrock-irsa", description="LLM provider: bedrock, openai, anthropic, bedrock-irsa")
+    llm_provider: str = Field(default="openai", description="LLM provider: openai, anthropic, openai-compatible")
     llm_model: Optional[str] = Field(default=None, description="Model ID (uses provider default if not specified)")
     llm_api_keys: Optional[Dict[str, str]] = Field(default=None, description="API keys for the LLM provider")
     config: Optional[Dict[str, Any]] = Field(default_factory=dict)

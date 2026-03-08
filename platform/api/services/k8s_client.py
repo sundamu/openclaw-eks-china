@@ -167,7 +167,7 @@ class K8sClient:
         self,
         tenant_name: str,
         agent_name: str,
-        llm_provider: str = "bedrock-irsa",
+        llm_provider: str = "openai",
         llm_model: Optional[str] = None,
         llm_api_keys: Optional[Dict[str, str]] = None,
         channel_config: Optional[Dict] = None,
@@ -175,10 +175,9 @@ class K8sClient:
         """Create OpenClawInstance CRD + agent-keys secret.
 
         LLM provider options:
-        - bedrock-irsa: Uses node IAM role (no API keys needed, platform-managed)
-        - bedrock: User provides AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
         - openai: User provides OPENAI_API_KEY
         - anthropic: User provides ANTHROPIC_API_KEY
+        - openai-compatible: User provides OPENAI_API_KEY + OPENAI_BASE_URL
         """
         from api.models.agent import LLM_PROVIDERS
 
@@ -206,12 +205,10 @@ class K8sClient:
 
         # 2) Build openclaw.json config
         #    - For providers with env var auth (openai, anthropic): just set model name
-        #    - For bedrock: need explicit provider config
         model_prefix = {
-            "bedrock": f"amazon-bedrock/{model}",
-            "bedrock-irsa": f"amazon-bedrock/{model}",
             "openai": model,
             "anthropic": model,
+            "openai-compatible": model,
         }.get(llm_provider, model)
 
         raw_config = {
@@ -224,15 +221,17 @@ class K8sClient:
             },
         }
 
-        # Add provider-specific config (e.g., Bedrock needs explicit provider block)
+        # Add provider-specific config
         provider_config = provider_def["config_builder"](model)
         raw_config.update(provider_config)
 
         if channel_config:
             raw_config["channels"] = channel_config
 
-        # 3) Build CRD body
-        sqs_queue_url = "https://us-west-2.queue.amazonaws.com/956045422469/openclaw-saas-usage-events"
+        # 3) Build CRD body — use settings for region-aware URLs
+        sqs_queue_url = settings.SQS_QUEUE_URL
+        metrics_image = settings.metrics_exporter_image
+        aws_region = settings.AWS_REGION
         body = {
             "apiVersion": f"{self.CRD_GROUP}/{self.CRD_VERSION}",
             "kind": "OpenClawInstance",
@@ -261,12 +260,12 @@ class K8sClient:
                 "sidecars": [
                     {
                         "name": "metrics-exporter",
-                        "image": "956045422469.dkr.ecr.us-west-2.amazonaws.com/openclaw-metrics-exporter:v0.1.0",
+                        "image": metrics_image,
                         "env": [
                             {"name": "TENANT_NAME", "value": tenant_name},
                             {"name": "AGENT_NAME", "value": agent_name},
                             {"name": "SQS_QUEUE_URL", "value": sqs_queue_url},
-                            {"name": "AWS_DEFAULT_REGION", "value": "us-west-2"},
+                            {"name": "AWS_DEFAULT_REGION", "value": aws_region},
                             {"name": "SCAN_INTERVAL_SECONDS", "value": "30"},
                             {"name": "METRICS_PORT", "value": "9090"},
                         ],

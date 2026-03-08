@@ -1,10 +1,17 @@
-"""EKS stack for OpenClaw SaaS"""
+"""EKS stack for OpenClaw SaaS (China region)"""
 import aws_cdk as cdk
 from aws_cdk import aws_eks as eks
 from aws_cdk import aws_ec2 as ec2
 from aws_cdk import aws_iam as iam
 from aws_cdk.lambda_layer_kubectl_v30 import KubectlV30Layer
 from constructs import Construct
+
+
+def sts_audience(partition: str) -> str:
+    """Return STS audience for OIDC trust — .cn suffix for China partition."""
+    if partition == "aws-cn":
+        return "sts.amazonaws.com.cn"
+    return "sts.amazonaws.com"
 
 
 class EksStack(cdk.Stack):
@@ -14,10 +21,12 @@ class EksStack(cdk.Stack):
         construct_id: str,
         vpc: ec2.IVpc,
         config,
-        bedrock_policy_arn: str = None,
         **kwargs
     ) -> None:
         super().__init__(scope, construct_id, **kwargs)
+
+        partition = self.partition  # "aws-cn" in China
+        sts_aud = sts_audience(partition)
 
         # Determine Kubernetes version
         k8s_version_map = {
@@ -52,15 +61,6 @@ class EksStack(cdk.Stack):
             ami_type=eks.NodegroupAmiType.AL2_ARM_64,
         )
 
-        # Attach Bedrock policy to node group if provided
-        if bedrock_policy_arn:
-            bedrock_policy = iam.ManagedPolicy.from_managed_policy_arn(
-                self,
-                "ImportedBedrockPolicy",
-                managed_policy_arn=bedrock_policy_arn,
-            )
-            nodegroup.role.add_managed_policy(bedrock_policy)
-
         # Store node security group for RDS access
         self.node_security_group = self.cluster.cluster_security_group
 
@@ -73,7 +73,7 @@ class EksStack(cdk.Stack):
                 f"{oidc_provider.open_id_connect_provider_issuer}:sub":
                     "system:serviceaccount:kube-system:ebs-csi-controller-sa",
                 f"{oidc_provider.open_id_connect_provider_issuer}:aud":
-                    "sts.amazonaws.com",
+                    sts_aud,
             },
         )
 
