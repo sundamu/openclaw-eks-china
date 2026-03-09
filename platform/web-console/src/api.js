@@ -41,7 +41,18 @@ class ApiClient {
     }
     if (res.status === 204) return null
     const data = await res.json()
-    if (!res.ok) throw new Error(data.detail || 'Request failed')
+    if (!res.ok) {
+      let msg = 'Request failed'
+      if (typeof data.detail === 'string') {
+        msg = data.detail
+      } else if (Array.isArray(data.detail)) {
+        msg = data.detail.map(e => {
+          const field = (e.loc || []).filter(l => l !== 'body').join('.')
+          return field ? `${field}: ${e.msg}` : e.msg
+        }).join('; ')
+      }
+      throw new Error(msg)
+    }
     return data
   }
 
