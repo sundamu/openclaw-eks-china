@@ -3,6 +3,12 @@ import { Routes, Route, Navigate, Link, useNavigate, useParams } from 'react-rou
 import { api } from './api'
 import './styles.css'
 
+// ─── Preload cached data on app startup ───
+if (api.isLoggedIn()) {
+  api.getAvailableChannels().catch(() => {})
+  api.getLlmProviders().catch(() => {})
+}
+
 // ─── Auth Context ───
 function useAuth() {
   const [, setTick] = useState(0)
@@ -281,14 +287,18 @@ function TenantPage() {
   const isOwnerOrAdmin = isAdmin || myRole === 'owner' || myRole === 'admin'
   const isOwner = isAdmin || myRole === 'owner'
 
-  const loadAgents = () => {
-    api.listAgents(tenantName).then(setAgents).catch(e => setError(e.message))
-  }
-  const loadMembers = () => {
-    api.getMembers(tenantName).then(setMembers).catch(() => {})
+  // Single reload function — replaces separate loadAgents + loadMembers
+  const reload = () => {
+    api.getTenantDashboard(tenantName).then(data => {
+      setAgents(data.agents)
+      setMembers(data.members)
+      setMyRole(data.role)
+      setBillingInfo(data.billing)
+      setAllowedEmails(data.allowed_emails || [])
+    }).catch(e => setError(e.message))
   }
   useState(() => {
-    // Single aggregated API call replaces 4 separate requests
+    // Single aggregated API call replaces 4-5 separate requests
     api.getTenantDashboard(tenantName).then(data => {
       setAgents(data.agents)
       setMembers(data.members)
@@ -302,7 +312,7 @@ function TenantPage() {
     if (!confirm('Delete this agent? This will stop the pod.')) return
     try {
       await api.deleteAgent(tenantName, id)
-      loadAgents()
+      reload()
     } catch (err) { setError(err.message) }
   }
 
@@ -380,7 +390,7 @@ function TenantPage() {
                 <span style={{fontSize:'12px', color:'var(--text-secondary)'}}>{new Date(m.joined_at).toLocaleDateString()}</span>
                 <span>{m.role !== 'owner' && isOwnerOrAdmin && <button className="btn btn-sm btn-danger" onClick={async () => {
                   if (!confirm(`Remove ${m.email} from this tenant?`)) return
-                  try { await api.removeMember(tenantName, m.user_id); loadMembers() } catch (err) { setError(err.message) }
+                  try { await api.removeMember(tenantName, m.user_id); reload() } catch (err) { setError(err.message) }
                 }}>Remove</button>}</span>
               </div>
             ))}
@@ -391,8 +401,8 @@ function TenantPage() {
       {createModal && (
         <CreateAgentModal
           tenantName={tenantName}
-          onClose={() => { setCreateModal(false); loadAgents() }}
-          onSuccess={(msg) => { setSuccess(msg); setCreateModal(false); loadAgents() }}
+          onClose={() => { setCreateModal(false); reload() }}
+          onSuccess={(msg) => { setSuccess(msg); setCreateModal(false); reload() }}
           onError={setError}
         />
       )}
@@ -402,7 +412,7 @@ function TenantPage() {
           tenantName={tenantName}
           agentId={channelModal.agentId}
           agentName={channelModal.agentName}
-          onClose={() => { setChannelModal(null); loadAgents() }}
+          onClose={() => { setChannelModal(null); reload() }}
         />
       )}
 
@@ -782,12 +792,9 @@ function BillingPage() {
 
   useEffect(() => {
     setLoading(true)
-    Promise.all([
-      api.getBilling(tenantName),
-      api.getUsageTokens(tenantName, period),
-    ]).then(([b, u]) => {
-      setBilling(b)
-      setUsage(u)
+    api.getBillingFull(tenantName, period).then(data => {
+      setBilling(data.billing)
+      setUsage(data.usage)
     }).catch(e => setError(e.message)).finally(() => setLoading(false))
   }, [tenantName, period])
 

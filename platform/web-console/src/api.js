@@ -1,5 +1,13 @@
 const API_BASE = window.location.origin
 
+// Simple TTL cache for rarely-changing data (channels, providers, plans)
+const _cache = new Map()
+function cachedRequest(key, fetcher, ttlMs = 5 * 60 * 1000) {
+  const cached = _cache.get(key)
+  if (cached && Date.now() - cached.ts < ttlMs) return Promise.resolve(cached.data)
+  return fetcher().then(data => { _cache.set(key, { data, ts: Date.now() }); return data })
+}
+
 class ApiClient {
   constructor() {
     this.token = localStorage.getItem('token')
@@ -105,8 +113,8 @@ class ApiClient {
     })
   }
 
-  // Channels
-  getAvailableChannels() { return this.request('/api/v1/channels') }
+  // Channels (cached — rarely changes)
+  getAvailableChannels() { return cachedRequest('channels', () => this.request('/api/v1/channels')) }
   bindChannel(tenant, agentId, channelType, credentials) {
     return this.request(`/api/v1/tenants/${tenant}/agents/${agentId}/channels`, {
       method: 'POST', body: JSON.stringify({ channel_type: channelType, credentials })
@@ -129,10 +137,15 @@ class ApiClient {
       method: 'POST', body: JSON.stringify({ plan })
     })
   }
-  getPlans() { return this.request('/api/v1/plans') }
+  getPlans() { return cachedRequest('plans', () => this.request('/api/v1/plans')) }
 
-  // LLM Providers
-  getLlmProviders() { return this.request('/api/v1/llm-providers') }
+  // LLM Providers (cached — rarely changes)
+  getLlmProviders() { return cachedRequest('llm-providers', () => this.request('/api/v1/llm-providers')) }
+
+  // Aggregated billing (replaces getBilling + getUsageTokens in one call)
+  getBillingFull(tenant, periodDays = 30) {
+    return this.request(`/api/v1/tenants/${tenant}/billing/full?period_days=${periodDays}`)
+  }
 
   // Platform Admin
   getAdminOverview() { return this.request('/api/v1/tenants/admin/overview') }
