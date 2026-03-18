@@ -131,7 +131,7 @@ Resources:
             Principal:
               AWS:
                 # TODO: Replace with actual China CloudLab account ID
-                - arn:aws-cn:iam::274436715293:root
+                - arn:aws-cn:iam::563807109929:root
             Action: sts:AssumeRole
       Path: /
       Policies:
@@ -555,7 +555,7 @@ Resources:
       ToPort: 443
       SourceSecurityGroupId: !Ref IdeSecurityGroup
 
-  ClusterSGIngressFromVPC:
+  ClusterNGSGIngressFromVPC:
     Type: AWS::EC2::SecurityGroupIngress
     Properties:
       GroupId: !GetAtt EKSCluster.ClusterSecurityGroupId
