@@ -2268,10 +2268,8 @@ Outputs:
     Description: Post-deploy steps
     Value: !Sub |
       1. aws eks update-kubeconfig --name ${ClusterName} --region ${AWS::Region}
-      2. Grant IDE access to cluster:
-         eksctl create iamidentitymapping --cluster ${ClusterName} --region ${AWS::Region} \
-           --arn <IdeRoleArn> --username admin --group system:masters
-      3. Install Helm charts (use China mirror for Karpenter, public.ecr.aws is not accessible):
-         - EFS CSI Driver, ALB Controller, Karpenter
-      4. Create StorageClasses (efs-sc, gp3)
-      5. Apply Karpenter NodePool + EC2NodeClass
+      2. Run Step 2 script: bash scripts/step2-k8s-components.sh
+         (Installs EFS CSI Driver, ALB Controller, StorageClasses, CRD, Operator)
+      3. Run Step 3 script: bash scripts/step3-platform-api.sh
+         (Deploys Platform API, creates secrets, runs DB migration)
+      Note: IDE access is auto-configured via EKS Access Entry (no manual iamidentitymapping needed)
