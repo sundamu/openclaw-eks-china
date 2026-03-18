@@ -137,6 +137,10 @@ spec:
           ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/uv:0.6-bookworm-slim 2>&1
           ctr -n k8s.io images tag --force public.ecr.aws/i4x4j7g8/openclaw-saas/uv:0.6-bookworm-slim ghcr.io/astral-sh/uv:0.6-bookworm-slim 2>&1
           echo "uv done"
+          # tailscale (operator injects as ghcr.io/tailscale/tailscale if enabled)
+          ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/tailscale:2026.03.18 2>&1
+          ctr -n k8s.io images tag --force public.ecr.aws/i4x4j7g8/openclaw-saas/tailscale:2026.03.18 ghcr.io/tailscale/tailscale:latest 2>&1
+          echo "tailscale done"
           # metrics-exporter (platform API generates as openclaw-metrics-exporter)
           ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw-metrics-exporter:v0.1.0 2>&1
           echo "metrics-exporter done"
