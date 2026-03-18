@@ -40,8 +40,8 @@ aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$REGION"
 # 1. EFS CSI Driver
 echo ""
 echo ">>> [1/5] Installing EFS CSI Driver..."
-helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/ 2>/dev/null || true
-helm repo update
+helm repo add aws-efs-csi-driver https://kubernetes-sigs.github.io/aws-efs-csi-driver/ || true
+helm repo update aws-efs-csi-driver
 helm upgrade --install aws-efs-csi-driver \
   aws-efs-csi-driver/aws-efs-csi-driver \
   --namespace kube-system \
@@ -62,8 +62,8 @@ aws eks create-pod-identity-association \
 # 2. ALB Controller
 echo ""
 echo ">>> [2/5] Installing ALB Controller..."
-helm repo add eks https://aws.github.io/eks-charts 2>/dev/null || true
-helm repo update
+helm repo add eks https://aws.github.io/eks-charts || true
+helm repo update eks
 helm upgrade --install aws-load-balancer-controller \
   eks/aws-load-balancer-controller \
   --namespace kube-system \
