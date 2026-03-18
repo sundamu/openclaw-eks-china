@@ -162,6 +162,16 @@ Resources:
                   - ec2:CreateLaunchTemplate
                   - ec2:DeleteLaunchTemplate
                   - ec2:CreateFleet
+                  - ec2:CreateNetworkInterface
+                  - ec2:DeleteNetworkInterface
+                  - ec2:ModifyNetworkInterfaceAttribute
+                  - ec2:AllocateAddress
+                  - ec2:AssignPrivateIpAddresses
+                  - ec2:AssociateAddress
+                  - ec2:DisassociateAddress
+                  - ec2:AttachNetworkInterface
+                  - ec2:DetachNetworkInterface
+                  - ec2:ReleaseAddress
                   # IAM
                   - iam:CreateRole
                   - iam:DeleteRole
@@ -544,6 +554,14 @@ Resources:
       FromPort: 443
       ToPort: 443
       SourceSecurityGroupId: !Ref IdeSecurityGroup
+
+  ClusterSGIngressFromVPC:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref ClusterSecurityGroup
+      Description: Allow all traffic from VPC CIDR
+      IpProtocol: "-1"
+      CidrIp: !Ref VpcCIDR
 
   EKSCluster:
     Type: AWS::EKS::Cluster
