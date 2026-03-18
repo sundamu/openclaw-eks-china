@@ -130,6 +130,8 @@ if [ "$KUBECTL_OK" = "true" ]; then
   log "[2.1] Deleting OpenClaw Operator..."
   if [ "$DRY_RUN" != "true" ]; then
     kubectl delete daemonset cn-image-prepull -n kube-system --ignore-not-found 2>/dev/null || true
+    kubectl delete daemonset cn-image-retag -n kube-system --ignore-not-found 2>/dev/null || true
+    kubectl delete job -n kube-system -l app=cn-image-prepull --ignore-not-found 2>/dev/null || true
     kubectl delete deployment openclaw-operator -n openclaw-operator-system --ignore-not-found --timeout=60s 2>/dev/null || true
     kubectl delete sa openclaw-operator -n openclaw-operator-system --ignore-not-found 2>/dev/null || true
     kubectl delete clusterrolebinding openclaw-operator-manager-rolebinding --ignore-not-found 2>/dev/null || true
