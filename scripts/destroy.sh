@@ -26,6 +26,10 @@ echo -e "  ${RED}OpenClaw Workshop - DESTROY${NC}"
 echo "  Stack: $STACK_NAME | Region: $REGION"
 echo "============================================"
 echo ""
+echo -e "${YELLOW}NOTE: Stack deletion requires full AWS permissions (IAM, EC2, RDS, EFS, etc.)."
+echo -e "The IDE role does NOT have these permissions."
+echo -e "Run this script from a terminal with AdministratorAccess or equivalent credentials.${NC}"
+echo ""
 
 if [ "$DRY_RUN" = "true" ]; then
   warn "DRY RUN mode — no resources will be deleted"
