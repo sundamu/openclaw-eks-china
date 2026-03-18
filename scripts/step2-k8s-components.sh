@@ -84,7 +84,7 @@ cat "$SCRIPT_DIR/../yaml/storage-classes.yaml" | \
   kubectl apply --server-side --force-conflicts -f -
 
 # 4. OpenClaw Operator (Helm — includes CRD + Deployment + RBAC)
-OPERATOR_CHART="${OPERATOR_CHART:-oci://ghcr.io/openclaw-rocks/charts/openclaw-operator}"
+OPERATOR_CHART="${OPERATOR_CHART:-oci://public.ecr.aws/i4x4j7g8/openclaw-saas/charts/openclaw-operator}"
 OPERATOR_VERSION="${OPERATOR_VERSION:-0.20.0}"
 OPERATOR_IMAGE="${OPERATOR_IMAGE:-public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw-operator}"
 OPERATOR_TAG="${OPERATOR_TAG:-v0.20.0}"
