@@ -1985,6 +1985,21 @@ Resources:
         PasswordLength: 32
         ExcludePunctuation: true
 
+  PlatformNLBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Sub '${ClusterName} Platform API NLB - pre-created for stable SG across redeploys'
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 8890
+          ToPort: 8890
+          CidrIp: 0.0.0.0/0
+          Description: Platform API HTTP from anywhere
+      Tags:
+        - Key: Name
+          Value: !Sub '${ClusterName}-platform-nlb-sg'
+
   RDSSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
@@ -2263,6 +2278,12 @@ Outputs:
     Value: !GetAtt PlatformApiRole.Arn
     Export:
       Name: !Sub '${AWS::StackName}-PlatformApiRoleArn'
+
+  PlatformNLBSecurityGroupId:
+    Description: Pre-created Security Group for Platform NLB (stable across Step 3 redeploys)
+    Value: !GetAtt PlatformNLBSecurityGroup.GroupId
+    Export:
+      Name: !Sub '${AWS::StackName}-PlatformNLBSecurityGroupId'
 
   PostDeployInstructions:
     Description: Post-deploy steps

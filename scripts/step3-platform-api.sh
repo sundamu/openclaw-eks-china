@@ -34,10 +34,12 @@ RDS_ENDPOINT=$(get_output RDSEndpoint)
 RDS_SECRET_ARN=$(get_output RDSSecretArn)
 SQS_QUEUE_URL=$(get_output SQSQueueUrl)
 PLATFORM_API_ROLE_ARN=$(get_output PlatformApiRoleArn)
+NLB_SG_ID=$(get_output PlatformNLBSecurityGroupId)
 
 echo "  Cluster: $CLUSTER_NAME"
 echo "  RDS: $RDS_ENDPOINT"
 echo "  SQS: $SQS_QUEUE_URL"
+echo "  NLB SG: $NLB_SG_ID"
 
 # Setup kubeconfig
 echo ">>> Configuring kubectl..."
@@ -113,6 +115,7 @@ echo ">>> [6/8] Deploying Platform API..."
 cat "$SCRIPT_DIR/../yaml/platform-api.yaml" | \
   sed "s|\${PLATFORM_IMAGE}|$PLATFORM_IMAGE|g" | \
   sed "s|\${PLATFORM_REPLICAS}|$PLATFORM_REPLICAS|g" | \
+  sed "s|\${NLB_SG_ID}|$NLB_SG_ID|g" | \
   kubectl apply -f -
 
 echo ">>> [7/8] Waiting for rollout..."
