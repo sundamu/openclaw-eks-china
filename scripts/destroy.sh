@@ -197,47 +197,39 @@ fi
 
 ########################################
 # Step 1: CloudFormation stack deletion
+# NOTE: Requires full AWS permissions
+# (IAM, EC2, RDS, EFS, etc.)
+# The IDE role does NOT have these.
 ########################################
 echo ""
 echo "============================================"
-echo "  Step 1: Deleting CloudFormation Stack"
+echo "  Step 1: CloudFormation Stack"
 echo "============================================"
 
-log "[1.1] Deleting stack: $STACK_NAME ..."
-if [ "$DRY_RUN" != "true" ]; then
-  aws cloudformation delete-stack --stack-name "$STACK_NAME" --region "$REGION" 2>&1
-  echo "  Stack deletion initiated."
-  echo ""
-  log "[1.2] Waiting for stack deletion (this may take 15-30 minutes)..."
-  echo "  Resources being deleted: EKS cluster, RDS, SQS, VPC, IAM roles, EFS, etc."
-  echo ""
-  echo "  Monitor progress:"
-  echo "    aws cloudformation describe-stack-events --stack-name $STACK_NAME --region $REGION --query 'StackEvents[0:5].[ResourceType,ResourceStatus,ResourceStatusReason]' --output table"
-  echo ""
+echo ""
+echo -e "${YELLOW}⚠️  Stack deletion requires permissions beyond what the IDE role has.${NC}"
+echo -e "${YELLOW}   Run the following commands from a terminal with AdministratorAccess:${NC}"
+echo ""
+echo "  # Delete the stack"
+echo "  aws cloudformation delete-stack --stack-name $STACK_NAME --region $REGION"
+echo ""
+echo "  # Monitor progress"
+echo "  aws cloudformation wait stack-delete-complete --stack-name $STACK_NAME --region $REGION"
+echo ""
+echo "  # If DELETE_FAILED, check which resources failed:"
+echo "  aws cloudformation describe-stack-resources --stack-name $STACK_NAME --region $REGION \\"
+echo "    --query 'StackResources[?ResourceStatus==\`DELETE_FAILED\`].[LogicalResourceId,ResourceStatusReason]' --output table"
+echo ""
+echo "  # Retry with --retain-resources if needed:"
+echo "  aws cloudformation delete-stack --stack-name $STACK_NAME --region $REGION --retain-resources <failed-resource>"
+echo ""
 
-  # Wait with timeout
-  aws cloudformation wait stack-delete-complete \
-    --stack-name "$STACK_NAME" --region "$REGION" 2>&1 && {
-    echo ""
-    echo -e "${GREEN}============================================${NC}"
-    echo -e "${GREEN}  ✅ All resources destroyed successfully!${NC}"
-    echo -e "${GREEN}============================================${NC}"
-  } || {
-    echo ""
-    err "Stack deletion may have failed or timed out."
-    echo "  Check status:"
-    echo "    aws cloudformation describe-stacks --stack-name $STACK_NAME --region $REGION --query 'Stacks[0].StackStatus' --output text"
-    echo ""
-    echo "  If DELETE_FAILED, check which resources failed:"
-    echo "    aws cloudformation describe-stack-resources --stack-name $STACK_NAME --region $REGION --query 'StackResources[?ResourceStatus==\`DELETE_FAILED\`].[LogicalResourceId,ResourceStatusReason]' --output table"
-    echo ""
-    echo "  Then retry with --retain-resources:"
-    echo "    aws cloudformation delete-stack --stack-name $STACK_NAME --region $REGION --retain-resources <failed-resource>"
-    exit 1
-  }
+if [ "$DRY_RUN" != "true" ]; then
+  echo -e "${GREEN}============================================${NC}"
+  echo -e "${GREEN}  ✅ Step 2 & 3 cleanup complete!${NC}"
+  echo -e "${GREEN}  ⏳ Delete the CFN stack manually (see above)${NC}"
+  echo -e "${GREEN}============================================${NC}"
 else
-  echo "  (dry-run) aws cloudformation delete-stack --stack-name $STACK_NAME --region $REGION"
-  echo ""
   echo -e "${YELLOW}============================================${NC}"
   echo -e "${YELLOW}  DRY RUN complete — nothing was deleted${NC}"
   echo -e "${YELLOW}============================================${NC}"
