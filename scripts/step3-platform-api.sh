@@ -69,9 +69,47 @@ aws eks create-pod-identity-association \
   --role-arn "$PLATFORM_API_ROLE_ARN" \
   --region "$REGION" 2>/dev/null || echo "  (already exists)"
 
-# 5. Create RBAC for platform-api ServiceAccount
+# 5. Create RBAC for platform-api ServiceAccount (least-privilege)
 echo ">>> [4/10] Creating RBAC..."
 cat <<'RBAC_EOF' | kubectl apply -f -
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: openclaw-platform-api
+rules:
+  # OpenClaw CRD management
+  - apiGroups: ["openclaw.rocks"]
+    resources: ["openclawinstances"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Namespace lifecycle (tenant-* namespaces)
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch", "create", "update", "delete"]
+  # Core resources in tenant namespaces
+  - apiGroups: [""]
+    resources: ["resourcequotas", "limitranges", "secrets", "pods", "services", "configmaps"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Network policies for tenant isolation
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Read-only for statefulsets and PVCs (status monitoring)
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: platform-api-pod-logs
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -80,7 +118,20 @@ metadata:
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cluster-admin
+  name: openclaw-platform-api
+subjects:
+  - kind: ServiceAccount
+    name: platform-api
+    namespace: openclaw-platform
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: platform-api-pod-logs
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: platform-api-pod-logs
 subjects:
   - kind: ServiceAccount
     name: platform-api
