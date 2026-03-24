@@ -149,12 +149,16 @@ spec:
           ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw-saas-dev-metrics-exporter:v0.1.0 2>&1
           echo "metrics-exporter done"
           # openclaw agent image (CRD default)
-          ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw:2026.3.23 2>&1
+          ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw:2026.3.1 2>&1
           echo "openclaw done"
           # openclaw-custom image (for custom agent image with kiro/acpx/tavily)
           ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw-custom:2026.3.22 2>&1
           echo "openclaw-custom done"
 
+          # rclone image 
+          ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/rclone:1.68 2>&1
+          ctr -n k8s.io images tag --force public.ecr.aws/i4x4j7g8/openclaw-saas/rclone:1.68 docker.io/rclone/rclone:1.68 2>&1
+          echo "openclaw-custom done"
           # chromium sidecar (CRD default uses public.ecr.aws, also retag for ghcr.io fallback)
           ctr -n k8s.io images pull public.ecr.aws/i4x4j7g8/openclaw-saas/chromium:2026.03.17 2>&1
           ctr -n k8s.io images tag --force public.ecr.aws/i4x4j7g8/openclaw-saas/chromium:2026.03.17 ghcr.io/browserless/chromium:latest 2>&1
