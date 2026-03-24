@@ -13,7 +13,7 @@
 # This Dockerfile bakes tools + configs into the image layer.
 # Files that need to land on the PVC (skills, playbook) are staged at
 # /opt/openclaw-custom/ and copied by an init container at pod startup.
-FROM ghcr.io/openclaw/openclaw:v2026.3.13
+FROM ghcr.io/openclaw/openclaw:2026.3.23-2
 
 USER root
 
