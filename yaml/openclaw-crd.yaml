@@ -1507,7 +1507,7 @@ spec:
                           chain security
                         type: string
                       repository:
-                        default: public.ecr.aws/i4x4j7g8/openclaw-saas/chromium
+                        default: public.ecr.aws/h4t8a9b8/openclaw-saas/chromium
                         description: Repository is the container image repository
                         type: string
                       tag:
@@ -3673,11 +3673,11 @@ spec:
                       x-kubernetes-map-type: atomic
                     type: array
                   repository:
-                    default: public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw
+                    default: public.ecr.aws/h4t8a9b8/openclaw-saas/openclaw
                     description: Repository is the container image repository
                     type: string
                   tag:
-                    default: "2026.3.13-1"
+                    default: "2026.3.28"
                     description: Tag is the container image tag
                     type: string
                 type: object

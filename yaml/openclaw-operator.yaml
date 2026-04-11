@@ -36,7 +36,7 @@ spec:
           type: RuntimeDefault
       containers:
       - name: manager
-        image: public.ecr.aws/i4x4j7g8/openclaw-saas/openclaw-operator:v0.20.0
+        image: public.ecr.aws/h4t8a9b8/openclaw-saas/openclaw-operator:v0.20.0
         imagePullPolicy: IfNotPresent
         command:
         - /manager
