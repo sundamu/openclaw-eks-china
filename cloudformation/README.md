@@ -58,13 +58,13 @@ eksctl version
 ```bash
 # 替换为实际值
 export AWS_REGION=cn-northwest-1
-export EKS_CLUSTER_NAME=openclaw-cn-workshop
+export EKS_CLUSTER_NAME=openclaw-prod
 
 # 写入 profile 持久化
 cat <<'EOF' | sudo tee /etc/profile.d/openclaw_env.sh
 export PROMPT_COMMAND='export PS1="\u@openclaw-ide:\w$ "'
-export AWS_REGION=cn-northwest-1
-export EKS_CLUSTER_NAME=openclaw-cn-workshop
+export AWS_REGION=$AWS_REGION
+export EKS_CLUSTER_NAME=$EKS_CLUSTER_NAME
 EOF
 source /etc/profile.d/openclaw_env.sh
 ```
