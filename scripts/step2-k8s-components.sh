@@ -137,6 +137,10 @@ spec:
           ctr -n k8s.io images pull public.ecr.aws/h4t8a9b8/openclaw-saas/nginx:1.27-alpine 2>&1
           ctr -n k8s.io images tag --force public.ecr.aws/h4t8a9b8/openclaw-saas/nginx:1.27-alpine docker.io/library/nginx:1.27-alpine 2>&1
           echo "nginx done"
+          # opentelemetry-collector
+          ctr -n k8s.io images pull public.ecr.aws/h4t8a9b8/openclaw-saas/opentelemetry-collector:0.120.0 2>&1                              
+          ctr -n k8s.io images tag --force public.ecr.aws/h4t8a9b8/openclaw-saas/opentelemetry-collector:0.120.0 docker.io/otel/opentelemetry-collector:0.120.0 2>&1
+          echo "opentelemetry-collector done"
           # uv (operator injects as ghcr.io/astral-sh/uv:0.6-bookworm-slim)
           ctr -n k8s.io images pull public.ecr.aws/h4t8a9b8/openclaw-saas/uv:0.6-bookworm-slim 2>&1
           ctr -n k8s.io images tag --force public.ecr.aws/h4t8a9b8/openclaw-saas/uv:0.6-bookworm-slim ghcr.io/astral-sh/uv:0.6-bookworm-slim 2>&1

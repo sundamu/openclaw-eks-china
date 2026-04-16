@@ -665,6 +665,7 @@ function ChannelModal({ tenantName, agentId, agentName, onClose }) {
     feishu: 'Feishu (飞书)',
     discord: 'Discord',
     whatsapp: 'WhatsApp',
+    wecom: 'WeCom (企业微信)',
   }
 
   const FIELDS = {
@@ -678,6 +679,10 @@ function ChannelModal({ tenantName, agentId, agentName, onClose }) {
       { key: 'phone_number_id', label: 'Phone Number ID', placeholder: '123456789' },
       { key: 'access_token', label: 'Access Token', placeholder: 'EAA...' },
       { key: 'verify_token', label: 'Verify Token', placeholder: 'my-verify-token' },
+    ],
+    wecom: [
+      { key: 'bot_id', label: 'Bot ID (机器人ID)', placeholder: 'your-bot-id' },                                                                                                                   
+      { key: 'secret', label: 'Secret (机器人密钥)', placeholder: 'your-bot-secret' }, 
     ],
   }
 

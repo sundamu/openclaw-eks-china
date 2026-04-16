@@ -13,7 +13,7 @@ ADMIN_EMAIL="${ADMIN_EMAIL:-openclaw-saas-admin@example.com}"
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-OpenClaw2026!}"
 
 # All images from public.ecr.aws (accessible from CN)
-PLATFORM_IMAGE="${PLATFORM_IMAGE:-public.ecr.aws/h4t8a9b8/openclaw-saas/platform:v0.9.24-china}"
+PLATFORM_IMAGE="${PLATFORM_IMAGE:-public.ecr.aws/h4t8a9b8/openclaw-saas/platform:v0.9.25-china}"
 BILLING_IMAGE="${BILLING_IMAGE:-public.ecr.aws/h4t8a9b8/openclaw-saas/billing-consumer:v0.1.0}"
 PLATFORM_REPLICAS="${PLATFORM_REPLICAS:-2}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -311,8 +311,55 @@ class K8sClient:
         if channel_config:
             raw_config["channels"] = channel_config
 
+        # Enable wecom plugin (official WeCom channel by Tencent)
+        raw_config.setdefault("plugins", {"allow": [], "entries": {}})
+        raw_config["plugins"].setdefault("allow", [])
+        raw_config["plugins"].setdefault("entries", {})
+        raw_config["plugins"].setdefault("load", {}).setdefault("paths", [])
+        
+        if "wecom-openclaw-plugin" not in raw_config["plugins"]["allow"]:
+            raw_config["plugins"]["allow"].append("wecom-openclaw-plugin")
+        raw_config["plugins"]["entries"]["wecom-openclaw-plugin"] = {
+            "enabled": True,
+        }
+    
+        wecom_plugin_path = "/home/openclaw/.openclaw/node_modules/@wecom/wecom-openclaw-plugin"
+        raw_config["plugins"]["load"]["paths"].append(wecom_plugin_path)
+
+        # Enable diagnostics-otel plugin so OpenClaw exports metrics/traces
+        # to the otel-collector sidecar (managed by operator)
+    
+        if "diagnostics-otel" not in raw_config["plugins"]["allow"]:
+            raw_config["plugins"]["allow"].append("diagnostics-otel")
+        raw_config["plugins"]["entries"]["diagnostics-otel"] = {
+            "enabled": True,
+        }
+        raw_config["diagnostics"] = {
+            "enabled": True,
+            "otel": {
+                "enabled": True,
+                "endpoint": "http://localhost:4318",
+                "protocol": "http/protobuf",
+                "serviceName": f"{tenant_name}-{agent_name}",
+                "traces": False,
+                "metrics": True,
+                "logs": False,
+                "flushIntervalMs": 30000,
+            },
+        }
+    
+
         raw_config["tools"] = {
             "exec": {"security": "full", "ask": "off"},
+        }
+
+        # Gateway: local mode required so sessions_spawn (acpx) can connect
+        # without triggering "pairing required" (1008) rejection.
+        raw_config["gateway"] = {
+            "mode": "local",
+            "auth": {
+                "mode": "none",
+            },
         }
 
         # 3) Build CRD body
@@ -335,6 +382,7 @@ class K8sClient:
                     "tag": effective_image_tag or "latest",
                     "pullPolicy": "Always",
                 }} if effective_image else {}),
+                "plugins": ["@wecom/wecom-openclaw-plugin"],
                 "envFrom": [{"secretRef": {"name": f"{agent_name}-keys"}}],
                 "env": [{"name": "NODE_OPTIONS", "value": "--max-old-space-size=3072"}],
                 "config": {
@@ -353,42 +401,6 @@ class K8sClient:
                     "requests": {"cpu": "500m", "memory": "2Gi"},
                     "limits": {"cpu": "2", "memory": "4Gi"},
                 },
-                # Metrics exporter sidecar - reads JSONL from shared PVC
-                "sidecars": [
-                    {
-                        "name": "metrics-exporter",
-                        "image": settings.metrics_exporter_image,
-                        "env": [
-                            {"name": "TENANT_NAME", "value": tenant_name},
-                            {"name": "AGENT_NAME", "value": agent_name},
-                            {"name": "SQS_QUEUE_URL", "value": sqs_queue_url},
-                            {"name": "AWS_DEFAULT_REGION", "value": settings.AWS_REGION},
-                            {"name": "SCAN_INTERVAL_SECONDS", "value": "30"},
-                            {"name": "METRICS_PORT", "value": "9090"},
-                        ],
-                        "ports": [{"containerPort": 9090, "name": "metrics"}],
-                        "resources": {
-                            "requests": {"cpu": "25m", "memory": "64Mi"},
-                            "limits": {"cpu": "100m", "memory": "128Mi"},
-                        },
-                        "volumeMounts": [
-                            {
-                                "name": "data",
-                                "mountPath": "/home/openclaw/.openclaw",
-                                "readOnly": True,
-                            }
-                        ],
-                        "securityContext": {
-                            "runAsNonRoot": True,
-                            "runAsUser": 1000,
-                            "runAsGroup": 1000,
-                            "allowPrivilegeEscalation": False,
-                            "readOnlyRootFilesystem": True,
-                            "capabilities": {"drop": ["ALL"]},
-                            "seccompProfile": {"type": "RuntimeDefault"},
-                        },
-                    }
-                ],
             },
         }
 
