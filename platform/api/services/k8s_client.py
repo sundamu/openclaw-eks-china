@@ -326,29 +326,6 @@ class K8sClient:
         wecom_plugin_path = "/home/openclaw/.openclaw/node_modules/@wecom/wecom-openclaw-plugin"
         raw_config["plugins"]["load"]["paths"].append(wecom_plugin_path)
 
-        # Enable diagnostics-otel plugin so OpenClaw exports metrics/traces
-        # to the otel-collector sidecar (managed by operator)
-    
-        if "diagnostics-otel" not in raw_config["plugins"]["allow"]:
-            raw_config["plugins"]["allow"].append("diagnostics-otel")
-        raw_config["plugins"]["entries"]["diagnostics-otel"] = {
-            "enabled": True,
-        }
-        raw_config["diagnostics"] = {
-            "enabled": True,
-            "otel": {
-                "enabled": True,
-                "endpoint": "http://localhost:4318",
-                "protocol": "http/protobuf",
-                "serviceName": f"{tenant_name}-{agent_name}",
-                "traces": False,
-                "metrics": True,
-                "logs": False,
-                "flushIntervalMs": 30000,
-            },
-        }
-    
-
         raw_config["tools"] = {
             "exec": {"security": "full", "ask": "off"},
         }
@@ -363,7 +340,6 @@ class K8sClient:
         }
 
         # 3) Build CRD body
-        sqs_queue_url = settings.sqs_url
         body = {
             "apiVersion": f"{self.CRD_GROUP}/{self.CRD_VERSION}",
             "kind": "OpenClawInstance",
